@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Good Tech Tab",
+  "version": "1.0",
+  "description": "A mindful new tab page with breathing exercises and curated content",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.supabase.co/*"
+  ],
+  "web_accessible_resources": [{
+    "resources": ["config.js"],
+    "matches": ["<all_urls>"]
+  }],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://*.supabase.co https://dlkcexaezderjwgxgyyo.supabase.co"
+  },
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png"
+  }
+}
