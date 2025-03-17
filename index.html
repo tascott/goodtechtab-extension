@@ -6,14 +6,36 @@
     <script src="config.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div id="breathing-widget" class="breathing-widget">
-            <div class="circle"></div>
-            <div class="instruction">Breathe</div>
-        </div>
-        
-        <div id="content-container" class="content-container">
-            <!-- Content will be loaded here dynamically -->
+    <div class="dashboard">
+        <div class="panel-grid">
+            <!-- Center Panel with Orb -->
+            <div class="panel panel-center">
+                <div class="container">
+                    <div class="breathing-orb"></div>
+                    <div class="breath-indicator inhale">Inhale...</div>
+                    <div class="breath-indicator exhale">Exhale...</div>
+                </div>
+            </div>
+
+            <!-- Left Panel -->
+            <div class="panel panel-left">
+                <div class="panel-content">
+                    <h2>Tech News</h2>
+                    <div id="content-container">
+                        <!-- Content will be loaded here dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel (placeholder for future content) -->
+            <div class="panel panel-right">
+                <div class="panel-content">
+                    <h2>Coming Soon</h2>
+                    <div class="placeholder-content">
+                        <p>Additional content sources will appear here</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <script src="app.js"></script>

@@ -61,32 +61,27 @@ async function initializeSupabase() {
     }
 }
 
-// Breathing instructions
-const instructions = {
-    inhale: 'Breathe In',
-    hold: 'Hold',
-    exhale: 'Breathe Out',
-    rest: 'Rest'
-}
-
 // Breathing animation control
-function updateBreathingInstruction() {
-    const instructionElement = document.querySelector('.instruction')
-    let currentPhase = 0
-    const phases = [
-        { text: instructions.inhale, duration: 4000 },
-        { text: instructions.hold, duration: 4000 },
-        { text: instructions.exhale, duration: 4000 },
-        { text: instructions.rest, duration: 2000 }
-    ]
-
-    function updatePhase() {
-        instructionElement.textContent = phases[currentPhase].text
-        currentPhase = (currentPhase + 1) % phases.length
+function updateBreathingText() {
+    const inhaleText = document.querySelector('.inhale');
+    const exhaleText = document.querySelector('.exhale');
+    const cycleTime = 12000; // 12 seconds per complete cycle
+    
+    function animate() {
+        const currentTime = Date.now() % cycleTime;
+        
+        if (currentTime < 6000) {
+            inhaleText.style.opacity = Math.min(1, 2 * (currentTime / 6000));
+            exhaleText.style.opacity = 0;
+        } else {
+            inhaleText.style.opacity = 0;
+            exhaleText.style.opacity = Math.min(1, 2 * ((currentTime - 6000) / 6000));
+        }
+        
+        requestAnimationFrame(animate);
     }
-
-    updatePhase()
-    setInterval(updatePhase, phases.reduce((sum, phase) => sum + phase.duration, 0))
+    
+    animate();
 }
 
 // Fetch and display content from Supabase
@@ -135,11 +130,55 @@ async function fetchContent() {
             console.log('Processing item:', item);
             const card = document.createElement('div');
             card.className = 'content-card';
-            card.innerHTML = `
-                <h2>${item.title || item.name}</h2>
-                <p>${item.content || item.description}</p>
-                <a href="${item.url || item.link}" target="_blank">Learn More →</a>
-            `;
+            
+            const title = document.createElement('h2');
+            title.textContent = item.title || 'Untitled';
+
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'content-wrapper collapsed';
+
+            const content = document.createElement('p');
+            content.textContent = item.content || 'No content available';
+            contentWrapper.appendChild(content);
+
+            const expandButton = document.createElement('button');
+            expandButton.className = 'expand-button';
+            expandButton.innerHTML = '<span>Expand</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+            expandButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent card click
+                contentWrapper.classList.toggle('collapsed');
+                const isCollapsed = contentWrapper.classList.contains('collapsed');
+                expandButton.innerHTML = isCollapsed ? 
+                    '<span>Expand</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' :
+                    '<span>Collapse</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+            });
+
+            const actionsWrapper = document.createElement('div');
+            actionsWrapper.className = 'actions-wrapper';
+
+            if (item.source_url) {
+                const link = document.createElement('a');
+                link.href = item.source_url;
+                link.innerHTML = 'Read more <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>';
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                actionsWrapper.appendChild(link);
+            }
+            actionsWrapper.appendChild(expandButton);
+
+            // Make the title area clickable to open the article
+            const titleArea = document.createElement('div');
+            titleArea.className = 'title-area';
+            
+            const titleWrapper = document.createElement('div');
+            titleWrapper.className = 'title-wrapper';
+            titleWrapper.appendChild(title);
+            titleArea.appendChild(titleWrapper);
+            titleArea.appendChild(expandButton);
+
+            card.appendChild(titleArea);
+            card.appendChild(contentWrapper);
+            card.appendChild(actionsWrapper);
             container.appendChild(card);
         });
     } catch (error) {
@@ -155,7 +194,7 @@ async function fetchContent() {
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async () => {
-    updateBreathingInstruction()
+    updateBreathingText()
     await initializeSupabase()
     await fetchContent()
 })
