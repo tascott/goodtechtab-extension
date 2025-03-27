@@ -2,6 +2,151 @@
 let supabaseUrl;
 let supabaseKey;
 
+// Bookmark management
+let bookmarks = [];
+
+// Initialize bookmarks from storage
+async function initializeBookmarks() {
+    const stored = await chrome.storage.local.get(['bookmarks']);
+    bookmarks = stored.bookmarks || [];
+    renderBookmarks();
+}
+
+// Save bookmarks to storage
+async function saveBookmarks() {
+    await chrome.storage.local.set({bookmarks});
+    renderBookmarks();
+}
+
+// Add new bookmark
+async function addBookmark(url,title) {
+    try {
+        // Add https if no protocol is specified
+        if(!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+        }
+
+        // Validate URL
+        const urlObj = new URL(url);
+        const favicon = `https://www.google.com/s2/favicons?sz=32&domain=${urlObj.hostname}`;
+        bookmarks.push({url,title,favicon});
+        await saveBookmarks();
+
+        // Clear form
+        const form = document.querySelector('.add-bookmark-form');
+        if(form) {
+            form.reset();
+            form.classList.add('collapsed');
+        }
+    } catch(error) {
+        console.error('Error adding bookmark:',error);
+        const errorElement = document.querySelector('.bookmark-error');
+        if(errorElement) {
+            errorElement.textContent = 'Please enter a valid URL';
+            errorElement.style.display = 'block';
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            },3000);
+        }
+    }
+}
+
+// Remove bookmark
+async function removeBookmark(index) {
+    bookmarks.splice(index,1);
+    await saveBookmarks();
+}
+
+// Render bookmarks
+function renderBookmarks() {
+    const bookmarksContainer = document.querySelector('.bookmarks-container');
+    if(!bookmarksContainer) return;
+
+    bookmarksContainer.innerHTML = `
+        <div class="bookmarks-header">
+            <h3 class="section-header">Bookmarks</h3>
+            <button id="add-bookmark" class="add-bookmark-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Tab
+            </button>
+        </div>
+        <form class="add-bookmark-form collapsed">
+            <div class="form-group">
+                <input type="text" id="bookmark-url" placeholder="Enter URL" required>
+                <input type="text" id="bookmark-title" placeholder="Enter title (optional)">
+                <div class="bookmark-error"></div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="save-bookmark-btn">Save</button>
+                <button type="button" class="cancel-bookmark-btn">Cancel</button>
+            </div>
+        </form>
+        <div class="bookmarks-list">
+            ${bookmarks.map((bookmark,index) => `
+                <div class="bookmark-item">
+                    <img src="${bookmark.favicon}" alt="" class="bookmark-favicon" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22><path d=%22M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z%22/></svg>'"/>
+                    <a href="${bookmark.url}" class="bookmark-link">${bookmark.title}</a>
+                    <button class="remove-bookmark" data-index="${index}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    // Add event listeners
+    const form = document.querySelector('.add-bookmark-form');
+    const addButton = document.getElementById('add-bookmark');
+    const cancelButton = document.querySelector('.cancel-bookmark-btn');
+
+    addButton?.addEventListener('click',() => {
+        form.classList.remove('collapsed');
+    });
+
+    cancelButton?.addEventListener('click',() => {
+        form.classList.add('collapsed');
+        form.reset();
+        document.querySelector('.bookmark-error').style.display = 'none';
+    });
+
+    form?.addEventListener('submit',(e) => {
+        e.preventDefault();
+        const url = document.getElementById('bookmark-url').value;
+        let title = document.getElementById('bookmark-title').value;
+
+        if(!title) {
+            try {
+                const urlObj = new URL(url.startsWith('http') ? url : 'https://' + url);
+                title = urlObj.hostname.replace('www.','');
+            } catch {
+                title = url;
+            }
+        }
+
+        addBookmark(url,title);
+    });
+
+    document.querySelectorAll('.remove-bookmark').forEach(button => {
+        button.addEventListener('click',(e) => {
+            const index = parseInt(e.currentTarget.dataset.index);
+            removeBookmark(index);
+        });
+    });
+
+    document.querySelectorAll('.bookmark-link').forEach(link => {
+        link.addEventListener('click',(e) => {
+            e.preventDefault();
+            window.location.href = link.href;
+        });
+    });
+}
+
 // Initialize Supabase credentials
 async function initializeSupabase() {
     try {
@@ -311,17 +456,14 @@ async function fetchContent() {
             const actionsWrapper = document.createElement('div');
             actionsWrapper.className = 'actions-wrapper';
 
-            if(expandButton) {
-                actionsWrapper.appendChild(expandButton);
-            }
-
+            // Create read more link
+            let readMoreLink = null;
             if(item.source_url) {
-                const link = document.createElement('a');
-                link.href = item.source_url;
-                link.innerHTML = 'Read more <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>';
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                actionsWrapper.appendChild(link);
+                readMoreLink = document.createElement('a');
+                readMoreLink.href = item.source_url;
+                readMoreLink.innerHTML = 'Read <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>';
+                readMoreLink.target = '_blank';
+                readMoreLink.rel = 'noopener noreferrer';
             }
 
             // Make the title area clickable to open the article
@@ -332,8 +474,15 @@ async function fetchContent() {
             titleWrapper.className = 'title-wrapper';
             titleWrapper.appendChild(title);
             titleArea.appendChild(titleWrapper);
+
+            // Add read more link to title area if it exists
+            if(readMoreLink) {
+                titleArea.appendChild(readMoreLink);
+            }
+
+            // Add expand button to actions wrapper if it exists
             if(expandButton) {
-                titleArea.appendChild(expandButton);
+                actionsWrapper.appendChild(expandButton);
             }
 
             card.appendChild(titleArea);
@@ -374,7 +523,40 @@ async function fetchContent() {
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded',async () => {
-    updateBreathingText()
-    await initializeSupabase()
-    await fetchContent()
-})
+    // Get the center panel
+    const centerPanel = document.querySelector('.panel-center');
+    if(!centerPanel) {
+        console.error('Center panel not found');
+        return;
+    }
+
+    // Create a container for the breathing exercise
+    const breathingContainer = document.createElement('div');
+    breathingContainer.className = 'breathing-container';
+
+    // Create the breathing orb structure
+    breathingContainer.innerHTML = `
+        <div class="container">
+            <div class="breathing-orb"></div>
+            <div class="breath-indicator inhale">Inhale...</div>
+            <div class="breath-indicator exhale">Exhale...</div>
+        </div>
+    `;
+
+    // Clear and set up the center panel
+    centerPanel.innerHTML = '';
+
+    // Create bookmarks container
+    const bookmarksContainer = document.createElement('div');
+    bookmarksContainer.className = 'bookmarks-container';
+
+    // Add both containers to the center panel
+    centerPanel.appendChild(breathingContainer);
+    centerPanel.appendChild(bookmarksContainer);
+
+    // Initialize everything
+    updateBreathingText();
+    await initializeBookmarks();
+    await initializeSupabase();
+    await fetchContent();
+});
