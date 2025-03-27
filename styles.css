@@ -1,5 +1,5 @@
 :root {
-    --bg-color: #0f1117;
+    --bg-color: #460909;
     --panel-bg: rgba(20, 22, 33, 0.7);
     --text-color: #ffffff;
     --accent-color: #7d5fff;
@@ -81,6 +81,38 @@ body {
     flex-direction: column;
 }
 
+.panel-right .panel-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+}
+
+.panel-right .panel-content>div {
+    flex: 1 0 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-right .panel-content h2 {
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+}
+
+.panel-right .panel-content>div>div {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.panel-right .panel-content .non-tech-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
 .panel-content h2 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -117,26 +149,29 @@ body {
     height: 150px;
     border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #ffcc66, #ff7e62, #903749);
-    box-shadow: 0 0 60px rgba(255, 204, 102, 0.8), 
-                0 0 120px rgba(255, 126, 98, 0.6),
-                0 0 180px rgba(144, 55, 73, 0.4);
+    box-shadow: 0 0 60px rgba(255, 204, 102, 0.8),
+        0 0 120px rgba(255, 126, 98, 0.6),
+        0 0 180px rgba(144, 55, 73, 0.4);
     position: relative;
     animation: breathe 12s infinite ease-in-out;
     overflow: hidden;
 }
 
 @keyframes breathe {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
-        box-shadow: 0 0 30px rgba(255, 153, 102, 0.8), 
-                    0 0 60px rgba(255, 94, 98, 0.6),
-                    0 0 90px rgba(144, 55, 73, 0.4);
+        box-shadow: 0 0 30px rgba(255, 153, 102, 0.8),
+            0 0 60px rgba(255, 94, 98, 0.6),
+            0 0 90px rgba(144, 55, 73, 0.4);
     }
+
     50% {
         transform: scale(1.5);
-        box-shadow: 0 0 80px rgba(255, 204, 102, 0.8), 
-                    0 0 160px rgba(255, 126, 98, 0.6),
-                    0 0 240px rgba(144, 55, 73, 0.4);
+        box-shadow: 0 0 80px rgba(255, 204, 102, 0.8),
+            0 0 160px rgba(255, 126, 98, 0.6),
+            0 0 240px rgba(144, 55, 73, 0.4);
     }
 }
 
@@ -159,10 +194,15 @@ body {
 }
 
 @keyframes fade-in-out {
-    0%, 45%, 100% {
+
+    0%,
+    45%,
+    100% {
         opacity: 0;
     }
-    10%, 35% {
+
+    10%,
+    35% {
         opacity: 0.8;
     }
 }
@@ -175,7 +215,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(45deg, rgba(255,126,98,0.2), rgba(255,204,102,0.3), rgba(144,55,73,0.2));
+    background: linear-gradient(45deg, rgba(255, 126, 98, 0.2), rgba(255, 204, 102, 0.3), rgba(144, 55, 73, 0.2));
     border-radius: 50%;
     opacity: 0.7;
     animation: wave 8s infinite ease-in-out alternate;
@@ -185,9 +225,11 @@ body {
     0% {
         transform: translateX(-10%) translateY(10%) rotate(0deg);
     }
+
     50% {
         transform: translateX(5%) translateY(-5%) rotate(10deg);
     }
+
     100% {
         transform: translateX(-5%) translateY(-10%) rotate(-5deg);
     }
@@ -202,18 +244,19 @@ body {
     padding-right: 0.5rem;
 }
 
-
-
 /* Content Cards */
 .content-card {
-    padding: 1rem;
+    padding: 0.5rem 1rem;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.2s ease;
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.1rem;
+    flex-shrink: 0;
+    margin-bottom: 1rem;
+    min-height: fit-content;
 }
 
 .content-card:hover {
@@ -297,7 +340,7 @@ body {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.content-card .content-wrapper:not(.collapsed) + .actions-wrapper .expand-button svg {
+.content-card .content-wrapper:not(.collapsed)+.actions-wrapper .expand-button svg {
     transform: rotate(180deg);
 }
 
@@ -321,8 +364,6 @@ body {
     opacity: 0.7;
     margin: 0;
 }
-
-
 
 .content-card a:hover {
     opacity: 0.8;
@@ -374,4 +415,14 @@ body {
     .content-grid {
         grid-template-columns: 1fr;
     }
+}
+
+.section-header {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    opacity: 0.9;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
