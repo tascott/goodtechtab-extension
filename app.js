@@ -87,7 +87,7 @@ function renderBookmarks() {
         <div class="bookmarks-list">
             ${bookmarks.map((bookmark,index) => `
                 <div class="bookmark-item">
-                    <img src="${bookmark.favicon}" alt="" class="bookmark-favicon" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22currentColor%22 stroke-width=%222%22><path d=%22M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z%22/></svg>'"/>
+                    <img src="${bookmark.favicon}" alt="" class="bookmark-favicon" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222%22%3E%3Cpath d=%22M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z%22/%3E%3C/svg%3E'"/>
                     <a href="${bookmark.url}" class="bookmark-link">${bookmark.title}</a>
                     <button class="remove-bookmark" data-index="${index}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -150,11 +150,8 @@ function renderBookmarks() {
 // Initialize Supabase credentials
 async function initializeSupabase() {
     try {
-        console.log('Starting Supabase initialization...');
-
         // Try to get credentials from Chrome storage first
         const stored = await chrome.storage.local.get(['supabaseUrl','supabaseKey']);
-        console.log('Retrieved from storage:',stored);
 
         // If not in storage, use config values and store them
         if(!stored.supabaseUrl || !stored.supabaseKey) {
@@ -190,7 +187,7 @@ async function initializeSupabase() {
         } else if(!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         } else {
-            console.log('Supabase connection test successful');
+            console.log('Connected')
         }
 
     } catch(error) {
@@ -407,16 +404,6 @@ async function fetchContent() {
             const titleLowerCase = item.title.toLowerCase();
             if(uniqueTitles.has(titleLowerCase)) {
                 const existingItem = duplicateTitles.get(titleLowerCase);
-                console.log(`Duplicate title found: "${item.title}"`,{
-                    existing: {
-                        panel: existingItem.panel,
-                        content_type: existingItem.content_type
-                    },
-                    duplicate: {
-                        panel: panelType,
-                        content_type: item.content_type
-                    }
-                });
                 return;
             }
             uniqueTitles.add(titleLowerCase);
@@ -494,11 +481,9 @@ async function fetchContent() {
         }
 
         // Render deep research content in left panel
-        console.log('Rendering deep research content:',deepResearchData);
         deepResearchData.forEach(item => createAndAppendCard(item,leftContainer,'left'));
 
         // Split and render other content
-        console.log('Processing other content:',otherContentData);
         otherContentData.forEach(item => {
             if(item.content_type === 'rss_reddit_goodnews') {
                 createAndAppendCard(item,nonTechContainer,'non-tech');
