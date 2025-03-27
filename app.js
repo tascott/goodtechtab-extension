@@ -403,9 +403,10 @@ async function fetchContent() {
 
         // Function to create and append a card
         function createAndAppendCard(item,container,panelType) {
-            // Skip if we've already seen this title
-            if(uniqueTitles.has(item.title)) {
-                const existingItem = duplicateTitles.get(item.title);
+            // Skip if we've already seen this title (case insensitive)
+            const titleLowerCase = item.title.toLowerCase();
+            if(uniqueTitles.has(titleLowerCase)) {
+                const existingItem = duplicateTitles.get(titleLowerCase);
                 console.log(`Duplicate title found: "${item.title}"`,{
                     existing: {
                         panel: existingItem.panel,
@@ -418,10 +419,11 @@ async function fetchContent() {
                 });
                 return;
             }
-            uniqueTitles.add(item.title);
-            duplicateTitles.set(item.title,{
+            uniqueTitles.add(titleLowerCase);
+            duplicateTitles.set(titleLowerCase,{
                 panel: panelType,
-                content_type: item.content_type
+                content_type: item.content_type,
+                originalTitle: item.title
             });
 
             const card = document.createElement('div');
@@ -442,14 +444,14 @@ async function fetchContent() {
             if(item.content) {
                 expandButton = document.createElement('button');
                 expandButton.className = 'expand-button';
-                expandButton.innerHTML = '<span>Expand</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+                expandButton.innerHTML = '<span style="color: white;">Expand</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
                 expandButton.addEventListener('click',(e) => {
                     e.stopPropagation(); // Prevent card click
                     contentWrapper.classList.toggle('collapsed');
                     const isCollapsed = contentWrapper.classList.contains('collapsed');
                     expandButton.innerHTML = isCollapsed ?
-                        '<span>Expand</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' :
-                        '<span>Collapse</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+                        '<span style="color: white;">Expand</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' :
+                        '<span style="color: white;">Collapse</span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg>';
                 });
             }
 
@@ -461,7 +463,7 @@ async function fetchContent() {
             if(item.source_url) {
                 readMoreLink = document.createElement('a');
                 readMoreLink.href = item.source_url;
-                readMoreLink.innerHTML = 'Read <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>';
+                readMoreLink.innerHTML = '<span style="color: white;">Read</span> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>';
                 readMoreLink.target = '_blank';
                 readMoreLink.rel = 'noopener noreferrer';
             }
