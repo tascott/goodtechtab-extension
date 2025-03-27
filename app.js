@@ -84,6 +84,49 @@ function updateBreathingText() {
     animate();
 }
 
+// Check if we should fetch new data based on time
+function shouldFetchNewData(lastFetchTime) {
+    if(!lastFetchTime) {
+        console.log('No previous fetch time found, will fetch new data');
+        return true;
+    }
+
+    const now = new Date();
+    const lastFetch = new Date(lastFetchTime);
+
+    // Get today's fetch times
+    const today7am = new Date(now);
+    today7am.setHours(7,0,0,0);
+
+    const today5pm = new Date(now);
+    today5pm.setHours(17,0,0,0);
+
+    console.log('Time check:',{
+        currentTime: now.toLocaleString(),
+        lastFetchTime: lastFetch.toLocaleString(),
+        next7amFetch: today7am.toLocaleString(),
+        next5pmFetch: today5pm.toLocaleString()
+    });
+
+    // If last fetch was before today's 7am and current time is after 7am, fetch
+    if(lastFetch < today7am && now >= today7am) {
+        console.log('Last fetch was before 7am and current time is after 7am - fetching new data');
+        return true;
+    }
+
+    // If last fetch was before today's 5pm and current time is after 5pm, fetch
+    if(lastFetch < today5pm && now >= today5pm) {
+        console.log('Last fetch was before 5pm and current time is after 5pm - fetching new data');
+        return true;
+    }
+
+    console.log('Using cached data - next fetch will be at:',
+        now < today7am ? '7am today' :
+            now < today5pm ? '5pm today' :
+                '7am tomorrow');
+    return false;
+}
+
 // Fetch and display content from Supabase
 async function fetchContent() {
     try {
@@ -91,55 +134,80 @@ async function fetchContent() {
             throw new Error('Supabase credentials not initialized');
         }
 
-        console.log('Fetching content...');
-        const baseUrl = supabaseUrl.replace(/\/$/,'');
+        // Check storage for cached data and last fetch time
+        const stored = await chrome.storage.local.get(['lastFetchTime','deepResearchData','otherContentData']);
+        let deepResearchData,otherContentData;
 
-        // First API call for deep research content
-        const deepResearchResponse = await fetch(
-            `${baseUrl}/rest/v1/curated_content?select=*&content_type=in.(openai_deep_research,perplexity_deep_research)`,{
-            method: 'GET',
-            headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'omit'
+        console.log('Cache status:',{
+            hasCachedData: !!(stored.deepResearchData && stored.otherContentData),
+            lastFetchTime: stored.lastFetchTime ? new Date(stored.lastFetchTime).toLocaleString() : 'never'
         });
 
-        // Second API call for other content
-        const otherContentResponse = await fetch(
-            `${baseUrl}/rest/v1/curated_content?select=*&content_type=not.in.(openai_deep_research,perplexity_deep_research)`,{
-            method: 'GET',
-            headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            credentials: 'omit'
-        });
+        // Determine if we need to fetch new data
+        if(!shouldFetchNewData(stored.lastFetchTime)) {
+            console.log('Using cached data from:',new Date(stored.lastFetchTime).toLocaleString());
+            deepResearchData = stored.deepResearchData;
+            otherContentData = stored.otherContentData;
+        } else {
+            console.log('Fetching fresh data...');
+            const baseUrl = supabaseUrl.replace(/\/$/,'');
 
-        if(!deepResearchResponse.ok || !otherContentResponse.ok) {
-            const errorText1 = await deepResearchResponse.text();
-            const errorText2 = await otherContentResponse.text();
-            console.log('Error responses:',{
-                deepResearch: {
-                    status: deepResearchResponse.status,
-                    statusText: deepResearchResponse.statusText,
-                    body: errorText1
+            // First API call for deep research content
+            const deepResearchResponse = await fetch(
+                `${baseUrl}/rest/v1/curated_content?select=*&content_type=in.(openai_deep_research,perplexity_deep_research)`,{
+                method: 'GET',
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                otherContent: {
-                    status: otherContentResponse.status,
-                    statusText: otherContentResponse.statusText,
-                    body: errorText2
-                }
+                credentials: 'omit'
             });
-            throw new Error(`HTTP error! Check console for details.`);
-        }
 
-        const deepResearchData = await deepResearchResponse.json();
-        const otherContentData = await otherContentResponse.json();
+            // Second API call for other content
+            const otherContentResponse = await fetch(
+                `${baseUrl}/rest/v1/curated_content?select=*&content_type=not.in.(openai_deep_research,perplexity_deep_research)`,{
+                method: 'GET',
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'omit'
+            });
+
+            if(!deepResearchResponse.ok || !otherContentResponse.ok) {
+                const errorText1 = await deepResearchResponse.text();
+                const errorText2 = await otherContentResponse.text();
+                console.log('Error responses:',{
+                    deepResearch: {
+                        status: deepResearchResponse.status,
+                        statusText: deepResearchResponse.statusText,
+                        body: errorText1
+                    },
+                    otherContent: {
+                        status: otherContentResponse.status,
+                        statusText: otherContentResponse.statusText,
+                        body: errorText2
+                    }
+                });
+                throw new Error(`HTTP error! Check console for details.`);
+            }
+
+            // Get fresh data
+            deepResearchData = await deepResearchResponse.json();
+            otherContentData = await otherContentResponse.json();
+
+            // Cache the new data and update last fetch time
+            await chrome.storage.local.set({
+                lastFetchTime: new Date().toISOString(),
+                deepResearchData,
+                otherContentData
+            });
+            console.log('Data cached at:',new Date().toISOString());
+        }
 
         // Get or create containers for both panels
         const leftPanel = document.querySelector('.panel-left .panel-content');
@@ -175,7 +243,7 @@ async function fetchContent() {
 
         // Add headers to right panel sections
         const techHeader = document.createElement('h3');
-        techHeader.textContent = 'Tech RSS feeds';
+        techHeader.textContent = 'Tech RSS feeds (good and neutral)';
         techHeader.className = 'section-header';
         rightContainer.appendChild(techHeader);
 
@@ -215,7 +283,7 @@ async function fetchContent() {
             card.className = 'content-card';
 
             const title = document.createElement('h3');
-            title.textContent = `${item.title || 'Untitled'} [${item.content_type}]`;
+            title.textContent = item.title || 'Untitled';
 
             const contentWrapper = document.createElement('div');
             contentWrapper.className = 'content-wrapper collapsed';
